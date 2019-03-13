@@ -7,6 +7,7 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Scanner;
+import Double;
 
 class ID3 {
 
@@ -49,6 +50,7 @@ class ID3 {
 							children[i].toString(indent + '\t');
 				return s;
 			} else
+				// Here is is indexing the last attribute because that is in fact the class
 				return indent + "Class: " + strings[attributes-1][value] + "\n";
 		} // toString(String)
 
@@ -96,12 +98,61 @@ class ID3 {
 		if (decisionTree == null)
 			error("Please run training phase before classification");
 		// PUT  YOUR CODE HERE FOR CLASSIFICATION
+
+        // For the dataset, starting at the root, split the data based on the criteria
+        // continue until every data point is in a leafnode
+        // print the data and associated classes
+
 	} // classify()
 
 	public void train(String[][] trainingData) {
 		indexStrings(trainingData);
 		// PUT  YOUR CODE HERE FOR TRAINING
+        // Try each possible split
+        double minEnt = Double.POSITIVE_INFINITY;
+        for ( int i = 0; i < attributes.length; i++){
+            double entropy = 0;
+
+            // For each node, split them into their subnodes based on the attribute selected and the possible values for the attribute
+            for (int j =0; j < stringCount[i]; j++){
+                List<Integer> dataSplit = splitData(trainingData,trainingIndices,i,j);
+                entropy += entropy(trainingData,datasplit);
+            }
+            if (entropy < minEnt){
+                minEnt = entropy;
+                int bestSplit = i;
+            }
+            // Calculate the total entropy for this split
+
+
+
+        }
+
+        // Get the split with the maximum entropy and set this as the decision tree
+        // Repeat for each node until running out of attributes to classify or entropy is 0 for the node - recursion
+        // Save final structure of tree
 	} // train()
+
+    public double entropy(String[][] data,  List<Integer> dataIndexes){
+        // For each class that exists in dataset
+        for (int i; i< stringCount[-1]; i++){
+	        // Count the number of datapoints in that class
+            // Do the log formula thing
+        }
+        // Sum the log formulas to get total entropy.
+    }
+
+    public List<Integer> splitData(String[][] data, List<Integer> dataIndexes, int attributeIndex, int valueIndex){
+	    // Returns the subset of data that has the same value for the given attribute
+        String value = strings[attributeIndex][valueIndex];
+	    List<Integer> dataSplit = new ArrayList<Integer>();
+	    for (int rowIndex : dataIndexes){
+	        if (data[rowIndex][attributeIndex] = strings[attributeIndex][valueIndex]){
+	            dataSplit.add(rowIndex);
+            }
+        }
+        return dataSplit;
+    }
 
 	/** Given a 2-dimensional array containing the training data, numbers each
 	 *  unique value that each attribute has, and stores these Strings in
@@ -110,7 +161,8 @@ class ID3 {
 	 *  and so on; and the number of different values in stringCount[2].
 	 **/
 	void indexStrings(String[][] inputData) {
-		data = inputData;
+        List<Integer> trainingIndices;
+        data = inputData;
 		examples = data.length;
 		attributes = data[0].length;
 		stringCount = new int[attributes];
@@ -119,6 +171,9 @@ class ID3 {
 		for (int attr = 0; attr < attributes; attr++) {
 			stringCount[attr] = 0;
 			for (int ex = 1; ex < examples; ex++) {
+			    if (attr == 0){
+                    trainingIndices.add(ex -1)
+                }
 				for (index = 0; index < stringCount[attr]; index++)
 					if (data[ex][attr].equals(strings[attr][index]))
 						break;	// we've seen this String before
