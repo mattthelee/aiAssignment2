@@ -108,25 +108,33 @@ class ID3 {
 	public void train(String[][] trainingData) {
 		indexStrings(trainingData);
 		// PUT  YOUR CODE HERE FOR TRAINING
+		System.out.println("Beginning tests");
+		System.out.println("This should be -0.736966 : " + xlogx(0.6));
+		System.out.println("Entropy calculation from first 3 rows of training data:" + entropy(trainingData,[0,1,2]));
+		System.out.println("End of tests");
+
         // Try each possible split
         double minEnt = Double.POSITIVE_INFINITY;
-        for ( int i = 0; i < attributes.length; i++){
+        for ( int attributeIndex = 0; attributeIndex < attributes.length; attributeIndex++){
             double entropy = 0;
 
             // For each node, split them into their subnodes based on the attribute selected and the possible values for the attribute
-            for (int j =0; j < stringCount[i]; j++){
-                List<Integer> dataSplit = splitData(trainingData,trainingIndices,i,j);
+            for (int j =0; j < stringCount[attributeIndex]; j++){
+                List<Integer> dataSplit = splitData(trainingData,trainingIndices,attributeIndex,j);
                 entropy += entropy(trainingData,datasplit);
             }
             if (entropy < minEnt){
                 minEnt = entropy;
-                int bestSplit = i;
+                int bestSplitAttributeIndex = attributeIndex;
             }
-            // Calculate the total entropy for this split
-
-
-
         }
+        currentNode.value = bestSplitAttributeIndex;
+        int childNo = stringCount[bestSplitAttributeIndex];
+        currentNode.children = new TreeNode[childNo];
+        for (int i; i <childNo; i++ ){
+        	currentNode.children = new TreeNode(null,null);
+		}
+
 
         // Get the split with the maximum entropy and set this as the decision tree
         // Repeat for each node until running out of attributes to classify or entropy is 0 for the node - recursion
@@ -134,12 +142,24 @@ class ID3 {
 	} // train()
 
     public double entropy(String[][] data,  List<Integer> dataIndexes){
+		// Gives the entropy of one split of the data
         // For each class that exists in dataset
+		double entropy = 0;
         for (int i; i< stringCount[-1]; i++){
-	        // Count the number of datapoints in that class
-            // Do the log formula thing
+	        // Count the number of datapoints with that class
+			int count = 0;
+			for (int j; j < dataIndexes.length; j++){
+				// If datapoint's class matches current class
+				if (data[dataIndexes[j]][-1] == stringCount[-1][i]){
+					count++;
+				}
+			}
+			// Do the log formula thing for this cass and add it to the entropy
+			entropy += - (count/dataIndexes.length)*xlogx(count / dataIndexes.length);
         }
-        // Sum the log formulas to get total entropy.
+
+
+		return entropy;
     }
 
     public List<Integer> splitData(String[][] data, List<Integer> dataIndexes, int attributeIndex, int valueIndex){
