@@ -109,24 +109,13 @@ class ID3 {
 	} // classify()
 
 	public void train(String[][] trainingData) {
+		// Trains the decisionTree tree on the trainingData
 		indexStrings(trainingData);
 		// Get rid of first line of the array which has variable names in
 		String [][] trimmedData = Arrays.copyOfRange(trainingData, 1, trainingData.length);
 		List <Integer> attributeList = getAttributeList();
 
-		// Performs some test to sanity check the functions
-		/*
-		System.out.println("Beginning tests");
-		System.out.println("This should be -0.442 : " + xlogx(0.6));
-		System.out.println("Entropy calculation of training data (0.94 for realestate):" + entropy(trimmedData));
-		System.out.println("Modeclass should return most prevalent class string (yes on realestate): " + strings[attributes-1][getModeClass(trainingData)]);
-		System.out.println("Best attribute index to split on (should be for 0 realestate): " + getBestSplitAttIndex(trimmedData,attributeList));
-		System.out.println("End of tests");
-		*/
 		decisionTree = dtLearn(trimmedData, attributeList);
-		//System.out.println("\n*****Final Tree*****");
-		//printTree();
-
 	} // train()
 
 	public int predictClass (String[] instance, TreeNode node){
@@ -134,16 +123,14 @@ class ID3 {
 
 		// If we have reached a lefnode return the classification
 		if (node.children == null){
-			// classify points with decisionTree.value
+			// classify points with node.value
 			return node.value;
 		}
-		//System.out.println("Debug: " + node.children.length);
-		for (int i = 0; i< node.children.length; i++){
-			// If this instance's attribute value matches the childs index
-			//System.out.println(instance[node.value]);
-			//System.out.println(strings[node.value][i]);
 
-			//System.out.println(instance[node.value].equals(strings[node.value][i]));
+		// For each child of the tree check if the data matches
+		for (int i = 0; i< node.children.length; i++){
+
+			// If this instance's attribute value matches the childs index
 			if (instance[node.value].equals(strings[node.value][i])){
 				// Continue expansion to next child
 				return predictClass(instance, node.children[i]);
@@ -154,7 +141,7 @@ class ID3 {
 	}
 
 	public TreeNode dtLearn(String [][] data, List<Integer> attributeList){
-		// Trains the decision tree,
+		// Recursive function for performing the training of the decision tree
 		// based off of decision tree learning algorithm in Russell and Norvig Chapter 18, pg702
 		if (data.length == 0){
 			error("No data passed to this dtLearn");
@@ -164,30 +151,36 @@ class ID3 {
 			return new TreeNode(null, classIndex);
 		}
 
+		// Find the best attribute to split on based on max information gain
 		int bestSplitAttributeIndex = getBestSplitAttIndex(data, attributeList);
-		//System.out.println("Debug " + bestSplitAttributeIndex);
+
+		// Create new treeNode with sufficient children
 		TreeNode tree = new TreeNode(new TreeNode[stringCount[bestSplitAttributeIndex]],bestSplitAttributeIndex);
+
+		// For each possible value of the attribute
 		for (int j =0; j < stringCount[bestSplitAttributeIndex]; j++){
-			// Get the split of the data possible on this attribute
+			// Get the split of the data where given attribute equals the jth possible value
 			String[][] dataSplit = splitData(data,bestSplitAttributeIndex,j);
+
+			// Create copy of the attribute list without the attirbute we've just split on
 			List<Integer> newAttributeList = new ArrayList(attributeList);
 			newAttributeList.remove(new Integer(bestSplitAttributeIndex));
-			TreeNode subtree = dtLearn(dataSplit, newAttributeList);
-			//System.out.println("Debug2: " + subtree);
 
+			// Recursive call to explore this childs children
+			TreeNode subtree = dtLearn(dataSplit, newAttributeList);
+
+			// Add this subtree to the children
 			tree.children[j] = subtree;
 		}
-		//System.out.println("Returning tree:" );
-		//System.out.println(tree);
-
 		return tree;
 	}
 
 	public int getBestSplitAttIndex(String[][] data, List<Integer> attributeList){
 		// Returns the best attribute by finding the splits with lowest total entropy
-		// Try each possible split
 		double minEnt = Double.POSITIVE_INFINITY;
 		int bestSplitAttributeIndex = 0;
+
+		// Try each possible split
 		for ( int attributeIndex : attributeList){
 			double entropy = 0;
 
@@ -196,8 +189,8 @@ class ID3 {
 				String [][] dataSplit = splitData(data,attributeIndex,j);
 				entropy += dataSplit.length*entropy(dataSplit)/ data.length;
 			}
-			// Something is wrong withthe calculation here as i need to multiply by the number of values in that bucket
-			//System.out.println("Entropy for attributeSplit " + attributeIndex + " is: " + entropy);
+
+			// Check if we need to update the min entropy and best attribute index
 			if (entropy < minEnt){
 				minEnt = entropy;
 				bestSplitAttributeIndex = attributeIndex;
@@ -245,24 +238,20 @@ class ID3 {
     public double entropy(String[][] data){
 		// Gives the entropy of one split of the data
 		double entropy = 0;
-		//System.out.println("DEBUG: " + stringCount[attributes-1]);
 
 		// For each class that exists in dataset
 		for (int i =0; i< stringCount[attributes-1]; i++){
 	        // Count the number of datapoints with that class
 			int count = 0;
 			for (int j = 0; j < data.length; j++){
-				//System.out.println("Count " + j + " are thees equal: " + data[j][attributes-1] + ":" + strings[attributes-1][i]);
-				//System.out.println(data[j][attributes-1].equals(strings[attributes-1][i]));
 				// If datapoint's class matches current class
 				if (data[j][attributes-1].equals( strings[attributes-1][i])){
 					count++;
 				}
 			}
 
-			// Do the log formula thing for this cass and add it to the entropy
+			// Calc the entropy for this data
 			entropy += -xlogx((float) count / data.length);
-			//System.out.println("Count of class" + i + " : " + count + " datalength: " + data.length + " entropy: " + -xlogx((float)count / data.length));
         }
 		return entropy;
     }
@@ -271,16 +260,26 @@ class ID3 {
 	    // Returns the subset of data that has the same value for the given attribute
         String value = strings[attributeIndex][valueIndex];
 	    List<Integer> splitIndexes = new ArrayList<Integer>();
+
+	    // For each row in the data
 	    for (int rowIndex =0; rowIndex < data.length; rowIndex++){
+	    	// If the row has the matching value for the given attribute then:
+
 	        if (data[rowIndex][attributeIndex].equals(strings[attributeIndex][valueIndex])){
+				// add it to list of indexes we are interested in
 				splitIndexes.add(rowIndex);
             }
         }
+
+	    // splitIndexes now has the indices for all the data that should be in this split the next loop assigns it
+		// We had to first get splitIndexes to know the size of teh dataSplit array
 		String[][] dataSplit = new String[splitIndexes.size()][attributes];
+
+	    // For each index in splitIndexes
 	    for ( int i = 0; i < splitIndexes.size(); i++){
+	    	// Add the data to the dataSplit
 	    	dataSplit[i] = data[splitIndexes.get(i)];
 		}
-
 		return dataSplit;
     }
 
