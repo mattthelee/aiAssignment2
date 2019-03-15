@@ -6,8 +6,8 @@ import java.io.FileReader;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Scanner;
-import Double;
+import java.util.*;
+//import Double;
 
 class ID3 {
 
@@ -109,69 +109,131 @@ class ID3 {
 		indexStrings(trainingData);
 		// PUT  YOUR CODE HERE FOR TRAINING
 		System.out.println("Beginning tests");
-		System.out.println("This should be -0.736966 : " + xlogx(0.6));
-		System.out.println("Entropy calculation from first 3 rows of training data:" + entropy(trainingData,[0,1,2]));
+		System.out.println("This should be -0.442 : " + xlogx(0.6));
+		System.out.println("Entropy calculation of training data:" + entropy(trainingData));
+		System.out.println("Modeclass should return most prevalent class string (yes on realestate): " + getModeClass(trainingData));
 		System.out.println("End of tests");
 
-        // Try each possible split
-        double minEnt = Double.POSITIVE_INFINITY;
-        for ( int attributeIndex = 0; attributeIndex < attributes.length; attributeIndex++){
-            double entropy = 0;
 
-            // For each node, split them into their subnodes based on the attribute selected and the possible values for the attribute
-            for (int j =0; j < stringCount[attributeIndex]; j++){
-                List<Integer> dataSplit = splitData(trainingData,trainingIndices,attributeIndex,j);
-                entropy += entropy(trainingData,datasplit);
-            }
-            if (entropy < minEnt){
-                minEnt = entropy;
-                int bestSplitAttributeIndex = attributeIndex;
-            }
-        }
-        currentNode.value = bestSplitAttributeIndex;
-        int childNo = stringCount[bestSplitAttributeIndex];
-        currentNode.children = new TreeNode[childNo];
-        for (int i; i <childNo; i++ ){
-        	currentNode.children = new TreeNode(null,null);
-		}
+		List <Integer> attributeList = getAttributeList();
+		TreeNode decisionTree = dtLearn(trainingData, attributeList);
+		printTree();
 
-
-        // Get the split with the maximum entropy and set this as the decision tree
-        // Repeat for each node until running out of attributes to classify or entropy is 0 for the node - recursion
-        // Save final structure of tree
 	} // train()
 
-    public double entropy(String[][] data,  List<Integer> dataIndexes){
+
+	public TreeNode dtLearn(String [][] data, List<Integer> attributeList){
+		if (data.length == 0){
+			error("No data passed to this dtLearn");
+		} else if (attributeList.size() == 0 || entropy(data) == 0){
+			// If there are no more attributes or data is all one class then return leafnode
+			int classIndex = getModeClass(data);
+			return new TreeNode(null, classIndex);
+		}
+
+		int bestSplitAttributeIndex = getBestSplitAttIndex(data, attributeList);
+		TreeNode tree = new TreeNode(null,bestSplitAttributeIndex);
+		for (int j =0; j < stringCount[bestSplitAttributeIndex]; j++){
+			// Get the split of the data possible on this attribute
+			String[][] dataSplit = splitData(data,bestSplitAttributeIndex,j);
+			List<Integer> newAttributeList = new ArrayList(attributeList);
+			newAttributeList.remove(new Integer(bestSplitAttributeIndex));
+			TreeNode subtree = dtLearn(dataSplit, newAttributeList);
+			tree.children[j] = subtree;
+		}
+		return tree;
+	}
+
+	public int getBestSplitAttIndex(String[][] data, List<Integer> attributeList){
+		// Try each possible split
+		double minEnt = Double.POSITIVE_INFINITY;
+		int bestSplitAttributeIndex = 0;
+		for ( int attributeIndex : attributeList){
+			double entropy = 0;
+
+			// For each node, split them into their subnodes based on the attribute selected and the possible values for the attribute
+			for (int j =0; j < stringCount[attributeIndex]; j++){
+				String [][] dataSplit = splitData(data,attributeIndex,j);
+				entropy += entropy(dataSplit);
+			}
+			if (entropy < minEnt){
+				minEnt = entropy;
+				bestSplitAttributeIndex = attributeIndex;
+			}
+		}
+		return bestSplitAttributeIndex;
+	}
+
+	public List<Integer> getAttributeList(){
+		// Returns a list of all the attribute indexes possible
+		List<Integer> attributeList = new ArrayList<Integer>();
+		for (int i =0 ; i < attributes; i++){
+			attributeList.add(i);
+		}
+		return attributeList;
+	}
+
+	public int getModeClass(String[][] data){
+		int [] classCounts = new int[stringCount[attributes-1]];
+		// For each class, count the number of instances of that class
+		for (int i =0 ; i < stringCount[attributes-1]; i++){
+			for (int j = 0; j < data.length; j++){
+				if (data[j][attributes-1] == strings[attributes-1][i]){
+					classCounts[i]++;
+				}
+			}
+		}
+		// TODO could make this more efficent by putting in the loop above
+		// Get the string of the highest count class
+		int maxCount = 0;
+		int modeClass = 0;
+		for (int k =0 ; k < classCounts.length; k++){
+			int count = classCounts[k];
+			if (count > maxCount){
+				maxCount = count;
+				modeClass = k;
+			}
+		}
+		return modeClass;
+	}
+
+    public double entropy(String[][] data){
 		// Gives the entropy of one split of the data
-        // For each class that exists in dataset
 		double entropy = 0;
-        for (int i; i< stringCount[-1]; i++){
+		System.out.println("DEBUG: " + stringCount[attributes-1]);
+
+		// For each class that exists in dataset
+		for (int i =0; i< stringCount[attributes-1]; i++){
 	        // Count the number of datapoints with that class
 			int count = 0;
-			for (int j; j < dataIndexes.length; j++){
+			for (int j = 0; j < data.length; j++){
 				// If datapoint's class matches current class
-				if (data[dataIndexes[j]][-1] == stringCount[-1][i]){
+				if (data[j][attributes-1] == strings[attributes-1][i]){
 					count++;
 				}
 			}
+			System.out.println("Count of class" + i + " : " + count + " datalength: " + data.length);
 			// Do the log formula thing for this cass and add it to the entropy
-			entropy += - (count/dataIndexes.length)*xlogx(count / dataIndexes.length);
+			entropy += -xlogx(count / data.length);
         }
-
-
 		return entropy;
     }
 
-    public List<Integer> splitData(String[][] data, List<Integer> dataIndexes, int attributeIndex, int valueIndex){
+    public String[][] splitData(String[][] data, int attributeIndex, int valueIndex){
 	    // Returns the subset of data that has the same value for the given attribute
         String value = strings[attributeIndex][valueIndex];
-	    List<Integer> dataSplit = new ArrayList<Integer>();
-	    for (int rowIndex : dataIndexes){
-	        if (data[rowIndex][attributeIndex] = strings[attributeIndex][valueIndex]){
-	            dataSplit.add(rowIndex);
+	    List<Integer> splitIndexes = new ArrayList<Integer>();
+	    for (int rowIndex =0; rowIndex < data.length; rowIndex++){
+	        if (data[rowIndex][attributeIndex] == strings[attributeIndex][valueIndex]){
+				splitIndexes.add(rowIndex);
             }
         }
-        return dataSplit;
+		String[][] dataSplit = new String[splitIndexes.size()][attributes];
+	    for ( int i = 0; i < splitIndexes.size(); i++){
+	    	dataSplit[i] = data[splitIndexes.get(i)];
+		}
+
+		return dataSplit;
     }
 
 	/** Given a 2-dimensional array containing the training data, numbers each
@@ -181,7 +243,6 @@ class ID3 {
 	 *  and so on; and the number of different values in stringCount[2].
 	 **/
 	void indexStrings(String[][] inputData) {
-        List<Integer> trainingIndices;
         data = inputData;
 		examples = data.length;
 		attributes = data[0].length;
@@ -191,9 +252,6 @@ class ID3 {
 		for (int attr = 0; attr < attributes; attr++) {
 			stringCount[attr] = 0;
 			for (int ex = 1; ex < examples; ex++) {
-			    if (attr == 0){
-                    trainingIndices.add(ex -1)
-                }
 				for (index = 0; index < stringCount[attr]; index++)
 					if (data[ex][attr].equals(strings[attr][index]))
 						break;	// we've seen this String before
@@ -255,3 +313,78 @@ class ID3 {
 	} // main()
 
 } // class ID3
+
+
+/*
+
+public List<Integer> splitData(String[][] data, List<Integer> dataIndexes, int attributeIndex, int valueIndex){
+	    // Returns the subset of data that has the same value for the given attribute
+        String value = strings[attributeIndex][valueIndex];
+	    List<Integer> dataSplit = new ArrayList<Integer>();
+	    for (int rowIndex : dataIndexes){
+	        if (data[rowIndex][attributeIndex] = strings[attributeIndex][valueIndex]){
+	            dataSplit.add(rowIndex);
+            }
+        }
+        return dataSplit;
+    }
+
+    public double entropy(String[][] data,  List<Integer> dataIndexes){
+		// Gives the entropy of one split of the data
+        // For each class that exists in dataset
+		double entropy = 0;
+        for (int i; i< stringCount[-1]; i++){
+	        // Count the number of datapoints with that class
+			int count = 0;
+			for (int j; j < dataIndexes.length; j++){
+				// If datapoint's class matches current class
+				if (data[dataIndexes[j]][-1] == stringCount[-1][i]){
+					count++;
+				}
+			}
+			// Do the log formula thing for this cass and add it to the entropy
+			entropy += - (count/dataIndexes.length)*xlogx(count / dataIndexes.length);
+        }
+
+
+		return entropy;
+    }
+
+	public void train(String[][] trainingData) {
+		indexStrings(trainingData);
+		// PUT  YOUR CODE HERE FOR TRAINING
+		System.out.println("Beginning tests");
+		System.out.println("This should be -0.736966 : " + xlogx(0.6));
+		System.out.println("Entropy calculation from first 3 rows of training data:" + entropy(trainingData,[0,1,2]));
+		System.out.println("Modeclass should return most prevalent class string: " + getModeClass(trainingData));
+		System.out.println("End of tests");
+
+        // Try each possible split
+        double minEnt = Double.POSITIVE_INFINITY;
+        for ( int attributeIndex = 0; attributeIndex < attributes.length; attributeIndex++){
+            double entropy = 0;
+
+            // For each node, split them into their subnodes based on the attribute selected and the possible values for the attribute
+            for (int j =0; j < stringCount[attributeIndex]; j++){
+                List<Integer> dataSplit = splitData(trainingData,trainingIndices,attributeIndex,j);
+                entropy += entropy(trainingData,datasplit);
+            }
+            if (entropy < minEnt){
+                minEnt = entropy;
+                int bestSplitAttributeIndex = attributeIndex;
+            }
+        }
+
+        currentNode.value = bestSplitAttributeIndex;
+        int childNo = stringCount[bestSplitAttributeIndex];
+        currentNode.children = new TreeNode[childNo];
+        for (int i; i <childNo; i++ ){
+        	currentNode.children = new TreeNode(null,null);
+		}
+
+
+        // Get the split with the maximum entropy and set this as the decision tree
+        // Repeat for each node until running out of attributes to classify or entropy is 0 for the node - recursion
+        // Save final structure of tree
+	} // train()
+ */
