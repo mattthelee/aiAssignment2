@@ -110,15 +110,18 @@ class ID3 {
 		// PUT  YOUR CODE HERE FOR TRAINING
 		// Get rid of first line of the array which has variable names in
 		String [][] trimmedData = Arrays.copyOfRange(trainingData, 1, trainingData.length);
+		List <Integer> attributeList = getAttributeList();
+
 
 		System.out.println("Beginning tests");
 		System.out.println("This should be -0.442 : " + xlogx(0.6));
 		System.out.println("Entropy calculation of training data (0.94 for realestate):" + entropy(trimmedData));
 		System.out.println("Modeclass should return most prevalent class string (yes on realestate): " + strings[attributes-1][getModeClass(trainingData)]);
+		System.out.println("Best attribute index to split on (should be for 0 realestate): " + getBestSplitAttIndex(trimmedData,attributeList));
 		System.out.println("End of tests");
 
-		List <Integer> attributeList = getAttributeList();
-		TreeNode decisionTree = dtLearn(trimmedData, attributeList);
+		decisionTree = dtLearn(trimmedData, attributeList);
+		System.out.println("\n*****Final Tree*****");
 		printTree();
 
 	} // train()
@@ -134,15 +137,21 @@ class ID3 {
 		}
 
 		int bestSplitAttributeIndex = getBestSplitAttIndex(data, attributeList);
-		TreeNode tree = new TreeNode(null,bestSplitAttributeIndex);
+		System.out.println("Debug " + bestSplitAttributeIndex);
+		TreeNode tree = new TreeNode(new TreeNode[stringCount[bestSplitAttributeIndex]],bestSplitAttributeIndex);
 		for (int j =0; j < stringCount[bestSplitAttributeIndex]; j++){
 			// Get the split of the data possible on this attribute
 			String[][] dataSplit = splitData(data,bestSplitAttributeIndex,j);
 			List<Integer> newAttributeList = new ArrayList(attributeList);
 			newAttributeList.remove(new Integer(bestSplitAttributeIndex));
 			TreeNode subtree = dtLearn(dataSplit, newAttributeList);
+			//System.out.println("Debug2: " + subtree);
+
 			tree.children[j] = subtree;
 		}
+		System.out.println("Returning tree:" );
+		System.out.println(tree);
+
 		return tree;
 	}
 
@@ -156,8 +165,10 @@ class ID3 {
 			// For each node, split them into their subnodes based on the attribute selected and the possible values for the attribute
 			for (int j =0; j < stringCount[attributeIndex]; j++){
 				String [][] dataSplit = splitData(data,attributeIndex,j);
-				entropy += entropy(dataSplit);
+				entropy += dataSplit.length*entropy(dataSplit)/ data.length;
 			}
+			// Something is wrong withthe calculation here as i need to multiply by the number of values in that bucket
+			System.out.println("Entropy for attributeSplit " + attributeIndex + " is: " + entropy);
 			if (entropy < minEnt){
 				minEnt = entropy;
 				bestSplitAttributeIndex = attributeIndex;
