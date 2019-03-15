@@ -98,8 +98,11 @@ class ID3 {
 		if (decisionTree == null)
 			error("Please run training phase before classification");
 		// PUT  YOUR CODE HERE FOR CLASSIFICATION
+		String [][] trimmedData = Arrays.copyOfRange(testData, 1, testData.length);
 
-        // For the dataset, starting at the root, split the data based on the criteria
+		for (String[] testInstance : trimmedData){
+			System.out.println(strings[attributes-1][predictClass(testInstance, decisionTree)]);
+		}
         // continue until every data point is in a leafnode
         // print the data and associated classes
 
@@ -107,12 +110,11 @@ class ID3 {
 
 	public void train(String[][] trainingData) {
 		indexStrings(trainingData);
-		// PUT  YOUR CODE HERE FOR TRAINING
 		// Get rid of first line of the array which has variable names in
 		String [][] trimmedData = Arrays.copyOfRange(trainingData, 1, trainingData.length);
 		List <Integer> attributeList = getAttributeList();
 
-
+		// Performs some test to sanity check the functions
 		System.out.println("Beginning tests");
 		System.out.println("This should be -0.442 : " + xlogx(0.6));
 		System.out.println("Entropy calculation of training data (0.94 for realestate):" + entropy(trimmedData));
@@ -121,13 +123,38 @@ class ID3 {
 		System.out.println("End of tests");
 
 		decisionTree = dtLearn(trimmedData, attributeList);
-		System.out.println("\n*****Final Tree*****");
-		printTree();
+		//System.out.println("\n*****Final Tree*****");
+		//printTree();
 
 	} // train()
 
+	public int predictClass (String[] instance, TreeNode node){
+		// Returns the class for the given data instance (row)
+
+		// If we have reached a lefnode return the classification
+		if (node.children == null){
+			// classify points with decisionTree.value
+			return node.value;
+		}
+		//System.out.println("Debug: " + node.children.length);
+		for (int i = 0; i< node.children.length; i++){
+			// If this instance's attribute value matches the childs index
+			//System.out.println(instance[node.value]);
+			//System.out.println(strings[node.value][i]);
+
+			//System.out.println(instance[node.value].equals(strings[node.value][i]));
+			if (instance[node.value].equals(strings[node.value][i])){
+				// Continue expansion to next child
+				return predictClass(instance, node.children[i]);
+			}
+		}
+		error("Something has gone wrong in the predictClass function");
+		return -1;
+	}
 
 	public TreeNode dtLearn(String [][] data, List<Integer> attributeList){
+		// Trains the decision tree,
+		// based off of decision tree learning algorithm in Russell and Norvig Chapter 18, pg702
 		if (data.length == 0){
 			error("No data passed to this dtLearn");
 		} else if (attributeList.size() == 0 || entropy(data) == 0){
@@ -137,7 +164,7 @@ class ID3 {
 		}
 
 		int bestSplitAttributeIndex = getBestSplitAttIndex(data, attributeList);
-		System.out.println("Debug " + bestSplitAttributeIndex);
+		//System.out.println("Debug " + bestSplitAttributeIndex);
 		TreeNode tree = new TreeNode(new TreeNode[stringCount[bestSplitAttributeIndex]],bestSplitAttributeIndex);
 		for (int j =0; j < stringCount[bestSplitAttributeIndex]; j++){
 			// Get the split of the data possible on this attribute
@@ -149,13 +176,14 @@ class ID3 {
 
 			tree.children[j] = subtree;
 		}
-		System.out.println("Returning tree:" );
-		System.out.println(tree);
+		//System.out.println("Returning tree:" );
+		//System.out.println(tree);
 
 		return tree;
 	}
 
 	public int getBestSplitAttIndex(String[][] data, List<Integer> attributeList){
+		// Returns the best attribute by finding the splits with lowest total entropy
 		// Try each possible split
 		double minEnt = Double.POSITIVE_INFINITY;
 		int bestSplitAttributeIndex = 0;
@@ -168,7 +196,7 @@ class ID3 {
 				entropy += dataSplit.length*entropy(dataSplit)/ data.length;
 			}
 			// Something is wrong withthe calculation here as i need to multiply by the number of values in that bucket
-			System.out.println("Entropy for attributeSplit " + attributeIndex + " is: " + entropy);
+			//System.out.println("Entropy for attributeSplit " + attributeIndex + " is: " + entropy);
 			if (entropy < minEnt){
 				minEnt = entropy;
 				bestSplitAttributeIndex = attributeIndex;
@@ -188,6 +216,8 @@ class ID3 {
 	}
 
 	public int getModeClass(String[][] data){
+		// Returns the index of the class that is most prevalent
+		// Ties are broken by choosing lower index class
 		int [] classCounts = new int[stringCount[attributes-1]];
 		// For each class, count the number of instances of that class
 		for (int i =0 ; i < stringCount[attributes-1]; i++){
@@ -331,77 +361,3 @@ class ID3 {
 
 } // class ID3
 
-
-/*
-
-public List<Integer> splitData(String[][] data, List<Integer> dataIndexes, int attributeIndex, int valueIndex){
-	    // Returns the subset of data that has the same value for the given attribute
-        String value = strings[attributeIndex][valueIndex];
-	    List<Integer> dataSplit = new ArrayList<Integer>();
-	    for (int rowIndex : dataIndexes){
-	        if (data[rowIndex][attributeIndex] = strings[attributeIndex][valueIndex]){
-	            dataSplit.add(rowIndex);
-            }
-        }
-        return dataSplit;
-    }
-
-    public double entropy(String[][] data,  List<Integer> dataIndexes){
-		// Gives the entropy of one split of the data
-        // For each class that exists in dataset
-		double entropy = 0;
-        for (int i; i< stringCount[-1]; i++){
-	        // Count the number of datapoints with that class
-			int count = 0;
-			for (int j; j < dataIndexes.length; j++){
-				// If datapoint's class matches current class
-				if (data[dataIndexes[j]][-1] == stringCount[-1][i]){
-					count++;
-				}
-			}
-			// Do the log formula thing for this cass and add it to the entropy
-			entropy += - (count/dataIndexes.length)*xlogx(count / dataIndexes.length);
-        }
-
-
-		return entropy;
-    }
-
-	public void train(String[][] trainingData) {
-		indexStrings(trainingData);
-		// PUT  YOUR CODE HERE FOR TRAINING
-		System.out.println("Beginning tests");
-		System.out.println("This should be -0.736966 : " + xlogx(0.6));
-		System.out.println("Entropy calculation from first 3 rows of training data:" + entropy(trainingData,[0,1,2]));
-		System.out.println("Modeclass should return most prevalent class string: " + getModeClass(trainingData));
-		System.out.println("End of tests");
-
-        // Try each possible split
-        double minEnt = Double.POSITIVE_INFINITY;
-        for ( int attributeIndex = 0; attributeIndex < attributes.length; attributeIndex++){
-            double entropy = 0;
-
-            // For each node, split them into their subnodes based on the attribute selected and the possible values for the attribute
-            for (int j =0; j < stringCount[attributeIndex]; j++){
-                List<Integer> dataSplit = splitData(trainingData,trainingIndices,attributeIndex,j);
-                entropy += entropy(trainingData,datasplit);
-            }
-            if (entropy < minEnt){
-                minEnt = entropy;
-                int bestSplitAttributeIndex = attributeIndex;
-            }
-        }
-
-        currentNode.value = bestSplitAttributeIndex;
-        int childNo = stringCount[bestSplitAttributeIndex];
-        currentNode.children = new TreeNode[childNo];
-        for (int i; i <childNo; i++ ){
-        	currentNode.children = new TreeNode(null,null);
-		}
-
-
-        // Get the split with the maximum entropy and set this as the decision tree
-        // Repeat for each node until running out of attributes to classify or entropy is 0 for the node - recursion
-        // Save final structure of tree
-	} // train()
- */
