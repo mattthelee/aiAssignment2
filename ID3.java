@@ -108,15 +108,17 @@ class ID3 {
 	public void train(String[][] trainingData) {
 		indexStrings(trainingData);
 		// PUT  YOUR CODE HERE FOR TRAINING
+		// Get rid of first line of the array which has variable names in
+		String [][] trimmedData = Arrays.copyOfRange(trainingData, 1, trainingData.length);
+
 		System.out.println("Beginning tests");
 		System.out.println("This should be -0.442 : " + xlogx(0.6));
-		System.out.println("Entropy calculation of training data:" + entropy(trainingData));
-		System.out.println("Modeclass should return most prevalent class string (yes on realestate): " + getModeClass(trainingData));
+		System.out.println("Entropy calculation of training data (0.94 for realestate):" + entropy(trimmedData));
+		System.out.println("Modeclass should return most prevalent class string (yes on realestate): " + strings[attributes-1][getModeClass(trainingData)]);
 		System.out.println("End of tests");
 
-
 		List <Integer> attributeList = getAttributeList();
-		TreeNode decisionTree = dtLearn(trainingData, attributeList);
+		TreeNode decisionTree = dtLearn(trimmedData, attributeList);
 		printTree();
 
 	} // train()
@@ -167,7 +169,8 @@ class ID3 {
 	public List<Integer> getAttributeList(){
 		// Returns a list of all the attribute indexes possible
 		List<Integer> attributeList = new ArrayList<Integer>();
-		for (int i =0 ; i < attributes; i++){
+		// -1 is to skip the class as a splitabble attribute
+		for (int i =0 ; i < attributes -1; i++){
 			attributeList.add(i);
 		}
 		return attributeList;
@@ -178,7 +181,7 @@ class ID3 {
 		// For each class, count the number of instances of that class
 		for (int i =0 ; i < stringCount[attributes-1]; i++){
 			for (int j = 0; j < data.length; j++){
-				if (data[j][attributes-1] == strings[attributes-1][i]){
+				if (data[j][attributes-1].equals( strings[attributes-1][i])){
 					classCounts[i]++;
 				}
 			}
@@ -200,21 +203,24 @@ class ID3 {
     public double entropy(String[][] data){
 		// Gives the entropy of one split of the data
 		double entropy = 0;
-		System.out.println("DEBUG: " + stringCount[attributes-1]);
+		//System.out.println("DEBUG: " + stringCount[attributes-1]);
 
 		// For each class that exists in dataset
 		for (int i =0; i< stringCount[attributes-1]; i++){
 	        // Count the number of datapoints with that class
 			int count = 0;
 			for (int j = 0; j < data.length; j++){
+				//System.out.println("Count " + j + " are thees equal: " + data[j][attributes-1] + ":" + strings[attributes-1][i]);
+				//System.out.println(data[j][attributes-1].equals(strings[attributes-1][i]));
 				// If datapoint's class matches current class
-				if (data[j][attributes-1] == strings[attributes-1][i]){
+				if (data[j][attributes-1].equals( strings[attributes-1][i])){
 					count++;
 				}
 			}
-			System.out.println("Count of class" + i + " : " + count + " datalength: " + data.length);
+
 			// Do the log formula thing for this cass and add it to the entropy
-			entropy += -xlogx(count / data.length);
+			entropy += -xlogx((float) count / data.length);
+			//System.out.println("Count of class" + i + " : " + count + " datalength: " + data.length + " entropy: " + -xlogx((float)count / data.length));
         }
 		return entropy;
     }
@@ -224,7 +230,7 @@ class ID3 {
         String value = strings[attributeIndex][valueIndex];
 	    List<Integer> splitIndexes = new ArrayList<Integer>();
 	    for (int rowIndex =0; rowIndex < data.length; rowIndex++){
-	        if (data[rowIndex][attributeIndex] == strings[attributeIndex][valueIndex]){
+	        if (data[rowIndex][attributeIndex].equals(strings[attributeIndex][valueIndex])){
 				splitIndexes.add(rowIndex);
             }
         }
