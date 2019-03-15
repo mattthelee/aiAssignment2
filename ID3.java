@@ -115,13 +115,14 @@ class ID3 {
 		List <Integer> attributeList = getAttributeList();
 
 		// Performs some test to sanity check the functions
+		/*
 		System.out.println("Beginning tests");
 		System.out.println("This should be -0.442 : " + xlogx(0.6));
 		System.out.println("Entropy calculation of training data (0.94 for realestate):" + entropy(trimmedData));
 		System.out.println("Modeclass should return most prevalent class string (yes on realestate): " + strings[attributes-1][getModeClass(trainingData)]);
 		System.out.println("Best attribute index to split on (should be for 0 realestate): " + getBestSplitAttIndex(trimmedData,attributeList));
 		System.out.println("End of tests");
-
+		*/
 		decisionTree = dtLearn(trimmedData, attributeList);
 		//System.out.println("\n*****Final Tree*****");
 		//printTree();
