@@ -100,11 +100,10 @@ class ID3 {
 		// PUT  YOUR CODE HERE FOR CLASSIFICATION
 		String [][] trimmedData = Arrays.copyOfRange(testData, 1, testData.length);
 
+		// For each instance of the data, run classifcation and print result
 		for (String[] testInstance : trimmedData){
 			System.out.println(strings[attributes-1][predictClass(testInstance, decisionTree)]);
 		}
-        // continue until every data point is in a leafnode
-        // print the data and associated classes
 
 	} // classify()
 
@@ -115,12 +114,12 @@ class ID3 {
 		String [][] trimmedData = Arrays.copyOfRange(trainingData, 1, trainingData.length);
 		List <Integer> attributeList = getAttributeList();
 
+
 		decisionTree = dtLearn(trimmedData, attributeList);
 	} // train()
 
 	public int predictClass (String[] instance, TreeNode node){
 		// Returns the class for the given data instance (row)
-
 		// If we have reached a lefnode return the classification
 		if (node.children == null){
 			// classify points with node.value
@@ -161,10 +160,16 @@ class ID3 {
 		for (int j =0; j < stringCount[bestSplitAttributeIndex]; j++){
 			// Get the split of the data where given attribute equals the jth possible value
 			String[][] dataSplit = splitData(data,bestSplitAttributeIndex,j);
-
+			if (dataSplit.length == 0){
+				// If this split has no data for it, then we need to decide what class to give it
+				// This will give it the class that is most prevalent in its parent
+				tree.children[j] = new TreeNode(null, getModeClass(data));
+				continue;
+			}
 			// Create copy of the attribute list without the attirbute we've just split on
 			List<Integer> newAttributeList = new ArrayList(attributeList);
 			newAttributeList.remove(new Integer(bestSplitAttributeIndex));
+
 
 			// Recursive call to explore this childs children
 			TreeNode subtree = dtLearn(dataSplit, newAttributeList);
@@ -178,7 +183,7 @@ class ID3 {
 	public int getBestSplitAttIndex(String[][] data, List<Integer> attributeList){
 		// Returns the best attribute by finding the splits with lowest total entropy
 		double minEnt = Double.POSITIVE_INFINITY;
-		int bestSplitAttributeIndex = 0;
+		int bestSplitAttributeIndex = -1;
 
 		// Try each possible split
 		for ( int attributeIndex : attributeList){
@@ -187,7 +192,7 @@ class ID3 {
 			// For each node, split them into their subnodes based on the attribute selected and the possible values for the attribute
 			for (int j =0; j < stringCount[attributeIndex]; j++){
 				String [][] dataSplit = splitData(data,attributeIndex,j);
-				entropy += dataSplit.length*entropy(dataSplit)/ data.length;
+				entropy += dataSplit.length*entropy(dataSplit);
 			}
 
 			// Check if we need to update the min entropy and best attribute index
@@ -238,6 +243,10 @@ class ID3 {
     public double entropy(String[][] data){
 		// Gives the entropy of one split of the data
 		double entropy = 0;
+
+		if (data.length == 0){
+			return 0;
+		}
 
 		// For each class that exists in dataset
 		for (int i =0; i< stringCount[attributes-1]; i++){
